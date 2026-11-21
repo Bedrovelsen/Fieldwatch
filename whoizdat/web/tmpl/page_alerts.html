@@ -1,0 +1,7 @@
+{{define "main"}}
+<h1>Alerts</h1>
+<form method="post" action="/accept-all" fx-action="/accept-all" fx-method="post">
+  <p>Add every new radio in the table to the home baseline: <button type="submit">Add all</button></p>
+</form>
+{{template "alerts" .}}
+{{end}}

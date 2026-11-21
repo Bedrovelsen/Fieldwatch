@@ -1,0 +1,9 @@
+{{define "alerts"}}<section id="alerts" aria-label="Alerts" fx-action="/alerts" fx-trigger="poll" ext-fx-poll="3000">
+{{if .Alerts}}<ol reversed>
+{{range .Alerts}}<li data-kind="{{.Kind}}"><article>
+  <h3>{{.Title}}</h3>
+  <p>{{.Text}}</p>
+  <p><time datetime="{{stamp .At}}">{{stamp .At}}</time> · <a href="/device?key={{.Key}}">Radio</a></p>
+</article></li>
+{{end}}</ol>{{else}}<p>No alerts.</p>{{end}}
+</section>{{end}}

@@ -1,0 +1,14 @@
+{{define "main"}}
+<h1>Signatures</h1>
+<p>{{.Total}} signatures in the catalog.</p>
+{{range .Groups}}<details>
+  <summary>{{title .Class}} ({{len .Fleets}})</summary>
+  <div class="scroll"><table>
+    <thead><tr><th scope="col">Name</th><th scope="col">Rules</th><th scope="col">Notes</th></tr></thead>
+    <tbody>{{range .Fleets}}<tr{{if .AttentionNote}} data-attention{{end}}>
+      <td>{{.Name}}</td><td>{{len .Rules}}</td>
+      <td>{{if .AttentionNote}}<mark>{{.AttentionNote}}</mark> {{end}}{{.Notes}}</td>
+    </tr>{{end}}</tbody>
+  </table></div>
+</details>{{end}}
+{{end}}

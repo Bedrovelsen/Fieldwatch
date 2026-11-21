@@ -1,0 +1,31 @@
+{{define "main"}}{{with .D}}
+<h1>{{if .Name}}{{.Name}}{{else}}{{.MAC}}{{end}}</h1>
+{{if .New}}<form method="post" action="/accept" fx-action="/accept" fx-method="post">
+  <input type="hidden" name="key" value="{{.Key}}">
+  <p><mark>New.</mark> This radio is not in the home baseline. <button type="submit">Add to home baseline</button></p>
+</form>{{end}}
+<dl>
+  <dt>Address</dt><dd><code>{{.MAC}}</code>{{if .Randomized}} (random address){{end}}</dd>
+  <dt>Type</dt><dd>{{role .Role}}</dd>
+  {{if .Hidden}}<dt>Network name</dt><dd>Hidden</dd>{{end}}
+  {{if .Chan}}<dt>Channel</dt><dd>{{.Chan}}{{if .MHz}} ({{.MHz}} MHz){{end}}</dd>{{end}}
+  <dt>Signal</dt><dd>{{if .RSSI}}{{.RSSI}} dBm now, {{.RSSIMax}} dBm strongest{{else}}Not known{{end}}</dd>
+  <dt>First heard</dt><dd>{{stamp .First}}</dd>
+  <dt>Last heard</dt><dd>{{stamp .Last}} ({{ago .Last}})</dd>
+  <dt>Frames</dt><dd>{{.Count}}{{if .Deauths}}, {{.Deauths}} deauthentication{{end}}</dd>
+  {{if .Probes}}<dt>Asks for networks</dt><dd>{{join .Probes ", "}}</dd>{{end}}
+  {{if .VendorIEs}}<dt>Vendor IE OUIs</dt><dd><code>{{join .VendorIEs " "}}</code></dd>{{end}}
+  {{if .UUIDs}}<dt>Service UUIDs</dt><dd><code>{{join .UUIDs " "}}</code></dd>{{end}}
+  {{range .Mfg}}<dt>Company data</dt><dd><code>{{printf "0x%04X" .CompanyID}} {{.DataHex}}</code></dd>{{end}}
+  {{range .ServiceData}}<dt>Service data</dt><dd><code>{{.UUID}} {{.DataHex}}</code></dd>{{end}}
+</dl>
+{{if .Sigs}}<h2>Signatures</h2>
+{{range .Sigs}}{{with sig .}}<article>
+  <h3>{{.Name}} <small>{{title .Class}}</small></h3>
+  {{if .AttentionNote}}<p><mark>{{.AttentionNote}}</mark></p>{{end}}
+  {{if .Notes}}<p>{{.Notes}}</p>{{end}}
+</article>{{end}}{{end}}{{end}}
+{{end}}
+{{with .AP}}<h2>Access point</h2>{{template "devtable" (list1 .)}}{{end}}
+{{if .Clients}}<h2>Clients of this access point</h2>{{template "devtable" .Clients}}{{end}}
+{{end}}

@@ -1,0 +1,28 @@
+{{define "layout"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}} · who_iz_dat</title>
+<link rel="stylesheet" href="/static/site.css">
+<script src="/static/fixi.js"></script>
+<script src="/static/ext-fixi.js"></script>
+</head>
+<body>
+<header>
+  <nav aria-label="Main">
+    <strong>who_iz_dat</strong>
+    <a href="/"{{if eq .Nav "live"}} aria-current="page"{{end}}>Live</a>
+    <a href="/alerts"{{if eq .Nav "alerts"}} aria-current="page"{{end}}>Alerts</a>
+    <a href="/signatures"{{if eq .Nav "signatures"}} aria-current="page"{{end}}>Signatures</a>
+  </nav>
+  <p id="stats" fx-action="/stats" fx-trigger="poll" ext-fx-poll="3000" fx-swap="innerHTML">{{template "stats" stats}}</p>
+</header>
+<main>
+{{block "main" .}}{{end}}
+</main>
+<footer>
+  <p>Receive only. A match is a hint, not proof of what a radio is. A sender address can be false.</p>
+</footer>
+</body>
+</html>{{end}}

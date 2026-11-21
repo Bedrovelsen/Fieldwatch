@@ -1,0 +1,24 @@
+{{define "devices"}}<section id="devices" aria-label="Radios" fx-action="/devices?{{.Query}}" fx-trigger="poll" ext-fx-poll="2000">
+<p>{{len .Devices}} radios match.</p>
+{{template "devtable" .Devices}}
+</section>{{end}}
+
+{{define "devtable"}}{{if .}}<div class="scroll"><table>
+<thead><tr>
+  <th scope="col">Name</th><th scope="col">Address</th><th scope="col">Type</th>
+  <th scope="col">Signatures</th><th scope="col">Signal</th><th scope="col">Ch</th>
+  <th scope="col">Last</th><th scope="col">Frames</th>
+</tr></thead>
+<tbody>
+{{range .}}<tr{{if .New}} data-new{{end}}{{if hasAttention .Sigs}} data-attention{{end}}>
+  <td><a href="/device?key={{.Key}}">{{if .Name}}{{.Name}}{{else if .Hidden}}<em>hidden</em>{{else if .Probes}}<em>asks for {{index .Probes 0}}</em>{{else}}<em>no name</em>{{end}}</a>{{if .New}} <mark>new</mark>{{end}}</td>
+  <td><code>{{.MAC}}</code>{{if .Randomized}} <small title="Random address">rnd</small>{{end}}</td>
+  <td>{{role .Role}}</td>
+  <td>{{range $i, $id := .Sigs}}{{if $i}}, {{end}}{{with sig $id}}{{.Name}}{{else}}{{$id}}{{end}}{{end}}</td>
+  <td>{{if .RSSI}}<meter min="-100" max="-20" low="-80" high="-55" optimum="-20" value="{{.RSSI}}"></meter> {{.RSSI}}{{end}}</td>
+  <td>{{if .Chan}}{{.Chan}}{{end}}</td>
+  <td><time datetime="{{stamp .Last}}">{{ago .Last}}</time></td>
+  <td>{{.Count}}</td>
+</tr>
+{{end}}</tbody>
+</table></div>{{else}}<p>No radios.</p>{{end}}{{end}}
