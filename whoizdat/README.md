@@ -24,8 +24,10 @@ It reads the same radio-signatures (RSI-1) catalog files.
 | Channel hopping | Done, with `iw` as a subprocess. |
 | Engine: radio table, home baseline, alerts (`engine`) | Done, tested. Alerts for new radios, signatures with an attention note, and deauthentication bursts. |
 | Web UI: Live, radio detail, Alerts, Signatures (`web`) | Done, tested in Chromium. |
-| Bluetooth LE | Not started. See the plan. |
-| LimeSDR | Not started. See the plan. |
+| Sub-GHz sensors through rtl_433 (`ism`, `whoizdat rtl433`) | Done, tested with sample rtl_433 JSON. Not tested with a LimeSDR. |
+| Bluetooth LE on macOS (`sensors/macble`, Swift) | Written, not compiled or tested: this work was done on Linux. |
+| Bluetooth LE on Linux | Not started. See the plan. |
+| LimeSDR spectrum, ADS-B | Not started. See the plan. |
 | Map | Not started. See the plan. |
 
 ## Build
@@ -52,6 +54,19 @@ a coffee shop network. At 80 seconds there is a deauthentication burst.
 
 ## Use it on Linux with an Alfa adapter
 
+Driver notes (check on your computer):
+
+- AWUS036ACM (MediaTek MT7612U) uses the `mt76x2u` driver that is in the
+  Linux kernel. Monitor mode works well with it. Use this adapter first.
+- AWUS036ACH (Realtek RTL8812AU) needs a driver from outside the kernel on
+  most distributions (for example `aircrack-ng/rtl8812au` with DKMS). New
+  kernels also have `rtw88_8812au`; its monitor mode may be less complete.
+
+To see which adapter you have: `lsusb` on Linux, or
+`system_profiler SPUSBDataType` on macOS. `0e8d:7612` is MT7612U (ACM) and
+`0bda:8812` is RTL8812AU (ACH).
+
+
 The capture program and the web server are separate processes. Only the
 capture program gets capture rights. The web server has no rights.
 
@@ -74,7 +89,14 @@ capture program gets capture rights. The web server has no rights.
 3. Run it:
 
    ```bash
-   ./whoizdat wifi -iface wlan1 -hop 1-13,36-48 | ./whoizdat serve -catalog ../dist/fieldwatch-signatures.rsi -
+   ./whoizdat wifi -iface wlan1 | ./whoizdat serve -catalog ../dist/fieldwatch-signatures.rsi -
+   ```
+
+   The default channels are for Canada with no DFS channels:
+   `1-11,36-48,149-165`. With two adapters, give each one half:
+
+   ```bash
+   ( ./whoizdat wifi -iface wlan1 -hop 1-11 & ./whoizdat wifi -iface wlan2 -hop 36-48,149-165 ) | ./whoizdat serve -catalog sigs.rsi -
    ```
 
 The home baseline is in `~/.config/whoizdat/known.json` (Linux) or
@@ -85,10 +107,51 @@ To keep a record, put `tee` in the pipe:
 `./whoizdat wifi -iface wlan1 | tee -a capture.jsonl | ./whoizdat serve -`.
 To replay it later: `./whoizdat serve capture.jsonl`.
 
-## macOS
+## Sub-GHz sensors with the LimeSDR (rtl_433)
 
-macOS cannot use an Alfa adapter in monitor mode with this program. There are
-three ways:
+rtl_433 decodes tire pressure sensors (TPMS) of cars that pass, weather
+stations, door and motion sensors, and key fobs. In Canada, TPMS and most key
+fobs use 315 MHz, and many home sensors use 433.92 MHz. The LimeSDR cannot
+receive both at the same time, so rtl_433 hops between them.
+
+rtl_433 must be built with SoapySDR, and SoapySDR needs the LimeSDR module
+(SoapyLMS7 from LimeSuite). I did not test this command with a LimeSDR:
+
+```bash
+rtl_433 -d driver=lime -f 315M -f 433.92M -H 30 -M level -F json | ./whoizdat rtl433 | ./whoizdat serve -
+```
+
+The signal level from rtl_433 is relative to the receiver (dB), not dBm.
+There are no signatures for these sensors; the baseline and "new" alerts
+apply. A car that parks near the house shows as four new tire sensors.
+
+## Bluetooth on macOS
+
+The built-in Bluetooth of a Mac works through CoreBluetooth. That is only
+available from Swift or Objective-C, so the sensor is a separate small
+program in `sensors/macble`. It needs the Xcode command line tools:
+
+```bash
+cd sensors/macble
+swiftc -O -o whoizdat-ble main.swift -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __info_plist -Xlinker Info.plist
+./whoizdat-ble | ../../whoizdat serve -catalog ../../../dist/fieldwatch-signatures.rsi -
+```
+
+macOS does not give the real Bluetooth address. Each radio has an id that
+this Mac makes, so address (OUI) rules do not apply. Name, company and service
+rules do. These radios count as random addresses, so they do not raise "new"
+alerts unless you use `-alert-random`. Signature alerts still work.
+
+All sensors can feed one server at the same time:
+
+```bash
+( ./whoizdat-ble & ./whoizdat demo ) | ./whoizdat serve -
+```
+
+## Wi-Fi on macOS
+
+The macOS kernel has no monitor-mode driver for these Alfa adapters, so
+`whoizdat wifi -iface` works only on Linux. There are three ways:
 
 - Sensor on Linux, UI on the Mac. The sensor computer needs only the binary:
 
@@ -103,7 +166,9 @@ three ways:
   sudo tcpdump -I -i en0 -w - | ./whoizdat wifi -pcap - | ./whoizdat serve -
   ```
 
-- A user-space USB driver, the method of wifit3. See phase 6 in the plan.
+- A user-space USB driver, the method of wifit3. wifit3 runs on macOS, has
+  user-space ports of the Linux drivers in Python over libusb, and grades both
+  the RTL8812AU and the MT7612U as A. See phase 6 in the plan.
 
 ## Remote access with Tailscale
 
@@ -125,6 +190,8 @@ sig           RSI-1 catalog and matcher
 wifi          radiotap, 802.11, pcap, pcapng, AF_PACKET capture, channel hopping
 engine        radio table, home baseline, alerts
 web           handlers, templates (layout, pages, partials), static files
+ism           rtl_433 JSON to observations
+sensors/macble  macOS Bluetooth sensor (Swift, separate program)
 ```
 
 `web/static/fixi.js` is fixi 0.9.4 from

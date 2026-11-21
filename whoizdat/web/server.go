@@ -132,7 +132,7 @@ func (s *Server) funcs() template.FuncMap {
 			return strings.ToUpper(s[:1]) + s[1:]
 		},
 		"role": func(r string) string {
-			return map[string]string{engine.RoleAP: "Access point", engine.RoleClient: "Wi-Fi client", engine.RoleBLE: "Bluetooth"}[r]
+			return map[string]string{engine.RoleAP: "Access point", engine.RoleClient: "Wi-Fi client", engine.RoleBLE: "Bluetooth", engine.RoleISM: "Sub-GHz sensor"}[r]
 		},
 		"hasAttention": func(ids []string) bool {
 			for _, id := range ids {

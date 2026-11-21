@@ -111,3 +111,23 @@ func TestDeauthBurst(t *testing.T) {
 		t.Errorf("deauth alerts = %d, want 1", n)
 	}
 }
+
+func TestNonMACRadios(t *testing.T) {
+	e := newEngine(t, "")
+	e.cfg.Learn = 0
+	e.Ingest(obs.Observation{At: at(0), Kind: obs.BLE, MAC: "uuid:6F1C2D3E-0000-4000-8000-000000000001", Frame: obs.FrameAdv, RSSI: -50})
+	e.Ingest(obs.Observation{At: at(time.Second), Kind: obs.ISM, MAC: "Schrader/1A2B3C4", Name: "Schrader TPMS", RSSI: -9,
+		Fields: map[string]string{"pressure_kPa": "231.5"}})
+	b, _ := e.Get("ble/uuid:6F1C2D3E-0000-4000-8000-000000000001")
+	if !b.Randomized || !b.New {
+		t.Errorf("a macOS Bluetooth id counts as random: %+v", b)
+	}
+	s, _ := e.Get("ism/Schrader/1A2B3C4")
+	if s.Role != RoleISM || s.Fields["pressure_kPa"] != "231.5" || len(s.Sigs) != 0 {
+		t.Errorf("sub-GHz sensor: %+v", s)
+	}
+	al := e.Alerts(0)
+	if len(al) != 1 || al[0].Title != "New sub-GHz sensor" {
+		t.Errorf("want one alert, for the sensor only: %+v", al)
+	}
+}

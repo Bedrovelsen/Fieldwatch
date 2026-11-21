@@ -95,3 +95,19 @@ func TestCanonUUID(t *testing.T) {
 		}
 	}
 }
+
+func TestNoAddressRulesWithoutMAC(t *testing.T) {
+	m := stockMatcher(t)
+	// A macOS Bluetooth id is hex but not an address. It must not hit an OUI rule.
+	r := Radio{Kind: obs.BLE, MAC: "uuid:0CFA2200-0000-0000-0000-000000000000"}
+	if got := m.Match(r); len(got) != 0 {
+		t.Errorf("uuid id matched address rules: %v", got)
+	}
+	r.Mfg = []obs.Mfg{{CompanyID: 838}}
+	if got := m.Match(r); !slices.Contains(got, "fleet-acuity") {
+		t.Errorf("company rule must still match: %v", got)
+	}
+	if got := m.Match(Radio{Kind: obs.ISM, MAC: "Schrader/70mai", Name: "70mai"}); got != nil {
+		t.Errorf("ISM radios have no signatures: %v", got)
+	}
+}

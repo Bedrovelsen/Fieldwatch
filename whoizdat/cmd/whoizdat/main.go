@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"whoizdat/engine"
+	"whoizdat/ism"
 	"whoizdat/obs"
 	"whoizdat/sig"
 	"whoizdat/web"
@@ -38,6 +39,7 @@ const usage = `whoizdat: passive Wi-Fi and Bluetooth awareness.
 
 Commands:
   wifi   capture Wi-Fi frames and write JSONL observations to stdout
+  rtl433 read rtl_433 JSON on stdin and write observations to stdout
   demo   write test observations to stdout
   serve  read JSONL observations and serve the web UI
 
@@ -61,6 +63,8 @@ func main() {
 		err = cmdDemo(ctx, os.Args[2:])
 	case "serve":
 		err = cmdServe(ctx, os.Args[2:])
+	case "rtl433":
+		err = cmdRtl433(os.Args[2:])
 	case "-h", "-help", "--help", "help":
 		fmt.Print(usage)
 	default:
@@ -77,7 +81,7 @@ func cmdWifi(ctx context.Context, args []string) error {
 	iface := fs.String("iface", "", "monitor-mode interface to capture from (Linux)")
 	pcap := fs.String("pcap", "", `pcap or pcapng file to read, or "-" for stdin`)
 	monitor := fs.Bool("monitor", false, "put -iface into monitor mode first (needs CAP_NET_ADMIN)")
-	hop := fs.String("hop", "1-13", `channels to visit, for example "1,6,11,36-48"; "" = stay`)
+	hop := fs.String("hop", "1-11,36-48,149-165", `channels to visit (default: Canada, no DFS); "" = stay`)
 	dwell := fs.Duration("dwell", 300*time.Millisecond, "time on each channel")
 	sensor := fs.String("sensor", "", "sensor name to put in each observation")
 	fs.Parse(args)
@@ -125,6 +129,25 @@ func cmdWifi(ctx context.Context, args []string) error {
 		return wifi.Live(ctx, *iface, emit)
 	}
 	return errors.New("wifi: give -iface or -pcap")
+}
+
+func cmdRtl433(args []string) error {
+	fs := flag.NewFlagSet("rtl433", flag.ExitOnError)
+	sensor := fs.String("sensor", "", "sensor name to put in each observation")
+	fs.Usage = func() {
+		fmt.Fprintln(fs.Output(), "usage: rtl_433 -F json -M level ... | whoizdat rtl433 [flags]")
+		fs.PrintDefaults()
+	}
+	fs.Parse(args)
+	w := obs.NewWriter(os.Stdout)
+	bad, err := ism.Read(os.Stdin, func(o obs.Observation) bool {
+		o.Sensor = *sensor
+		return w.Write(o) == nil
+	})
+	if bad > 0 {
+		log.Printf("rtl433: skipped %d lines that are not rtl_433 JSON", bad)
+	}
+	return err
 }
 
 func cmdServe(ctx context.Context, args []string) error {

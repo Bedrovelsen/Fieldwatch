@@ -9,6 +9,7 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -26,6 +27,7 @@ const (
 	RoleAP     = "ap"
 	RoleClient = "client"
 	RoleBLE    = "ble"
+	RoleISM    = "ism"
 )
 
 // Device is everything known about one transmitter.
@@ -51,6 +53,7 @@ type Device struct {
 	UUIDs       []string
 	Mfg         []obs.Mfg
 	ServiceData []obs.ServiceData
+	Fields      map[string]string // newest decoded values (sub-GHz sensors)
 
 	Sigs  []string // matched signature ids
 	New   bool     // not in the home baseline
@@ -130,7 +133,7 @@ func (e *Engine) Ingest(o obs.Observation) {
 	k := Key(o.Kind, o.MAC)
 	d := e.devs[k]
 	if d == nil {
-		d = &Device{Key: k, Kind: o.Kind, MAC: o.MAC, First: o.At, RSSIMax: -200, Randomized: obs.Randomized(o.MAC), dirty: true}
+		d = &Device{Key: k, Kind: o.Kind, MAC: o.MAC, First: o.At, RSSIMax: -200, Randomized: obs.Randomized(o.MAC) || (o.Kind == obs.BLE && !obs.IsMAC(o.MAC)), dirty: true}
 		e.devs[k] = d
 		e.baseline(d, o)
 	}
@@ -177,6 +180,8 @@ func roleName(o obs.Observation) string {
 	switch {
 	case o.Kind == obs.BLE:
 		return "Bluetooth device"
+	case o.Kind == obs.ISM:
+		return "sub-GHz sensor"
 	case o.Frame == obs.FrameBeacon || o.Frame == obs.FrameProbeResp:
 		return "access point"
 	}
@@ -215,6 +220,8 @@ func update(d *Device, o obs.Observation) {
 	switch {
 	case o.Kind == obs.BLE:
 		d.Role = RoleBLE
+	case o.Kind == obs.ISM:
+		d.Role = RoleISM
 	case o.Frame == obs.FrameBeacon || o.Frame == obs.FrameProbeResp:
 		d.Role = RoleAP
 	case d.Role == "":
@@ -236,6 +243,9 @@ func update(d *Device, o obs.Observation) {
 		if o.Hidden != d.Hidden && o.Frame == obs.FrameBeacon {
 			d.Hidden, d.dirty = o.Hidden, true
 		}
+	}
+	if len(o.Fields) > 0 {
+		d.Fields = maps.Clone(o.Fields)
 	}
 	d.VendorIEs = addAll(d.VendorIEs, o.VendorIEs, &d.dirty)
 	d.UUIDs = addAll(d.UUIDs, o.UUIDs, &d.dirty)
@@ -355,6 +365,7 @@ func copyDev(d *Device) Device {
 	c.UUIDs = slices.Clone(d.UUIDs)
 	c.Mfg = slices.Clone(d.Mfg)
 	c.ServiceData = slices.Clone(d.ServiceData)
+	c.Fields = maps.Clone(d.Fields)
 	return c
 }
 

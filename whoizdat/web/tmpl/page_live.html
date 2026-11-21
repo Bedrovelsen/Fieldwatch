@@ -8,6 +8,7 @@
         <option value="">All</option>
         <option value="wifi"{{if eq .F.Kind "wifi"}} selected{{end}}>Wi-Fi</option>
         <option value="ble"{{if eq .F.Kind "ble"}} selected{{end}}>Bluetooth</option>
+        <option value="ism"{{if eq .F.Kind "ism"}} selected{{end}}>Sub-GHz sensors</option>
       </select></label>
     <label>Type
       <select name="role">

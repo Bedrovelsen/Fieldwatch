@@ -32,6 +32,9 @@ func demoRadios() []demoRadio {
 	probe := func(mac, name string) obs.Observation {
 		return obs.Observation{Kind: obs.WiFi, MAC: mac, Frame: obs.FrameProbeReq, Name: name}
 	}
+	tpms := func(id, name string, f map[string]string) obs.Observation {
+		return obs.Observation{Kind: obs.ISM, MAC: id, Name: name, MHz: 315, Fields: f}
+	}
 	s := time.Second
 	return []demoRadio{
 		// Home
@@ -51,6 +54,9 @@ func demoRadios() []demoRadio {
 		{o: ap("00:30:44:12:34:56", "Cradlepoint-IBR900", 11), rssi: -69, start: 40 * s, stop: 120 * s},
 		{o: ble("0C:FA:22:00:00:09", "Flipper Kiwi", nil), rssi: -58, start: 55 * s},
 		{o: ble("E4:00:00:00:AA:01", "", []obs.Mfg{{CompanyID: 555}}), rssi: -71, start: 60 * s},
+		// Sub-GHz: the neighbour's weather station, and a car that parks for a minute
+		{o: tpms("Acurite-Tower/4242/chA", "Acurite-Tower", map[string]string{"temperature_C": "-3.4", "humidity": "81"}), rssi: -14},
+		{o: tpms("Schrader/1A2B3C4", "Schrader TPMS", map[string]string{"pressure_kPa": "231.5", "temperature_C": "12"}), rssi: -9, start: 45 * s, stop: 105 * s},
 	}
 }
 

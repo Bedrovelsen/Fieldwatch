@@ -19,6 +19,7 @@ type Kind string
 const (
 	WiFi Kind = "wifi"
 	BLE  Kind = "ble"
+	ISM  Kind = "ism" // sub-GHz sensors, for example from rtl_433
 )
 
 // Frame says what the transmitter sent. Empty means unknown.
@@ -47,7 +48,7 @@ type Observation struct {
 	At     time.Time `json:"at"`
 	Sensor string    `json:"sensor,omitempty"`
 	Kind   Kind      `json:"kind"`
-	MAC    string    `json:"mac"`
+	MAC    string    `json:"mac"` // a MAC address, or another stable id (see IsMAC)
 	Frame  string    `json:"frame,omitempty"`
 	Name   string    `json:"name,omitempty"` // SSID, probed SSID, or BLE local name
 	Hidden bool      `json:"hidden,omitempty"`
@@ -60,6 +61,23 @@ type Observation struct {
 	UUIDs       []string      `json:"uuids,omitempty"`
 	Mfg         []Mfg         `json:"mfg,omitempty"`
 	ServiceData []ServiceData `json:"svc_data,omitempty"`
+
+	Fields map[string]string `json:"fields,omitempty"` // decoded values, for example tire pressure
+}
+
+// IsMAC is true when id is a 48-bit address. Other ids are, for example,
+// "Schrader/1A2B3C4D" from rtl_433 or "uuid:..." from macOS Bluetooth.
+// Address rules (OUI, MAC prefix) apply only to real addresses.
+func IsMAC(id string) bool {
+	if len(HexOnly(id)) != 12 {
+		return false
+	}
+	for _, r := range id {
+		if !(r >= '0' && r <= '9' || r >= 'a' && r <= 'f' || r >= 'A' && r <= 'F' || r == ':' || r == '-' || r == '.') {
+			return false
+		}
+	}
+	return true
 }
 
 // NormMAC returns "AA:BB:CC:DD:EE:FF" for any common MAC spelling.
@@ -97,7 +115,7 @@ func HexOnly(raw string) string {
 // Randomized is true when the local bit is set and the group bit is clear.
 func Randomized(mac string) bool {
 	h := HexOnly(mac)
-	if len(h) < 2 {
+	if !IsMAC(mac) {
 		return false
 	}
 	b := hexNibble(h[0])<<4 | hexNibble(h[1])
@@ -136,7 +154,9 @@ func Read(r io.Reader, fn func(Observation) bool) (bad int, err error) {
 			bad++
 			continue
 		}
-		o.MAC = NormMAC(o.MAC)
+		if IsMAC(o.MAC) {
+			o.MAC = NormMAC(o.MAC)
+		}
 		if o.At.IsZero() {
 			o.At = time.Now()
 		}

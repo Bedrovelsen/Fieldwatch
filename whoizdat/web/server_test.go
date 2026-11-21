@@ -54,11 +54,11 @@ func TestPages(t *testing.T) {
 	_, h := testServer(t)
 	for _, tc := range []struct{ path, want string }{
 		{"/", "eero-home"},
-		{"/alerts", "3 Wi-Fi and 0 Bluetooth frames"},
+		{"/alerts", "3 Wi-Fi, 0 Bluetooth and 0 sub-GHz frames"},
 		{"/signatures", "<summary>ISP ("},
 		{"/?new=1", "Cradlepoint-IBR900"},
 		{"/devices?kind=wifi&role=client", "DA:A1:19:55:66:77"},
-		{"/stats", "Wi-Fi and 0 Bluetooth frames"},
+		{"/stats", "0 Bluetooth and 0 sub-GHz frames"},
 		{"/device?key=" + url.QueryEscape("wifi/F8:BB:BF:10:20:30"), "Clients of this access point"},
 		{"/device?key=" + url.QueryEscape("wifi/00:30:44:12:34:56"), "Add to home baseline"},
 		{"/alerts", "New access point"},

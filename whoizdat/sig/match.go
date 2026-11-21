@@ -71,9 +71,15 @@ func (m *Matcher) Catalog() *Catalog { return m.cat }
 // Match returns the ids of the signatures that this radio matches, in
 // catalog order.
 func (m *Matcher) Match(r Radio) []string {
+	if r.Kind != obs.WiFi && r.Kind != obs.BLE {
+		return nil
+	}
 	hit := map[int]bool{}
-	mac := obs.HexOnly(r.MAC)
-	if len(mac) >= 6 {
+	mac := ""
+	if obs.IsMAC(r.MAC) {
+		mac = obs.HexOnly(r.MAC)
+	}
+	if mac != "" {
 		m.prefixHits(hit, r, mac, fromMAC)
 	}
 	if r.Kind == obs.WiFi {
@@ -207,7 +213,7 @@ func ruleHits(r Radio, rule Rule) bool {
 	switch rule.Kind {
 	case OUI, MACPrefix:
 		p := obs.HexOnly(rule.Text)
-		if p == "" {
+		if p == "" || !obs.IsMAC(r.MAC) {
 			return false
 		}
 		mac := obs.HexOnly(r.MAC)
