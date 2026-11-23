@@ -1,0 +1,42 @@
+{{define "head"}}
+<link rel="stylesheet" href="/static/maplibre/maplibre-gl.css">
+<script src="/static/maplibre/maplibre-gl-csp.js"></script>
+{{if .Basemap}}<script src="/static/maplibre/pmtiles.js"></script>{{end}}
+<script src="/static/map.js" defer></script>
+{{end}}
+
+{{define "main"}}
+<h1>Map</h1>
+{{if .Site}}
+<form action="/map" method="get" role="search">
+  <fieldset>
+    <legend>Show</legend>
+    <label>Radio
+      <select name="kind">
+        <option value="">Wi-Fi and Bluetooth</option>
+        <option value="wifi"{{if eq .F.Kind "wifi"}} selected{{end}}>Wi-Fi</option>
+        <option value="ble"{{if eq .F.Kind "ble"}} selected{{end}}>Bluetooth</option>
+      </select></label>
+    <label>Heard in
+      <select name="within">
+        {{range $v := (list "1m" "10m" "1h")}}<option{{if eq $v $.Within}} selected{{end}}>{{$v}}</option>{{end}}
+      </select></label>
+    <label><input type="checkbox" name="new" value="1"{{if .F.NewOnly}} checked{{end}}> New only</label>
+    <label><input type="checkbox" name="sig" value="1"{{if .F.SigOnly}} checked{{end}}> Signature match only</label>
+    <button type="submit">Apply</button>
+  </fieldset>
+</form>
+<figure>
+  <div id="map" data-lat="{{.Site.Lat}}" data-lon="{{.Site.Lon}}" data-query="{{.Query}}"{{if .Basemap}} data-basemap="/map.pmtiles"{{end}} role="application" aria-label="Map of radios around the sensor"></div>
+  <figcaption>
+    The direction of each radio is not known. Its distance from the sensor (the centre) is an estimate
+    from the signal level. Click a dot to see the band of possible distances. <span id="map-status"></span>
+  </figcaption>
+</figure>
+<noscript><p>The map needs JavaScript. The <a href="/">Live</a> list works without it.</p></noscript>
+{{else}}
+<p>The map needs the position of the sensor. Start the server with <code>-site lat,lon</code>, for example
+<code>whoizdat serve -site 45.4215,-75.6972 ...</code>. For a basemap, add <code>-basemap area.pmtiles</code>
+(see the README).</p>
+{{end}}
+{{end}}

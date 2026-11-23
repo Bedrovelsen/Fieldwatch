@@ -44,6 +44,7 @@ type Device struct {
 	Chan, MHz  int
 	RSSI       int // newest
 	RSSIMax    int
+	RSSIAvg    float64 // smoothed level, for distance
 	First      time.Time
 	Last       time.Time
 	Count      int
@@ -211,6 +212,11 @@ func update(d *Device, o obs.Observation) {
 		d.First = o.At
 	}
 	if o.RSSI != 0 {
+		if d.RSSIAvg == 0 {
+			d.RSSIAvg = float64(o.RSSI)
+		} else {
+			d.RSSIAvg = 0.7*d.RSSIAvg + 0.3*float64(o.RSSI)
+		}
 		d.RSSI = o.RSSI
 		d.RSSIMax = max(d.RSSIMax, o.RSSI)
 	}

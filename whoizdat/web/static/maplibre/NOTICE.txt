@@ -1,0 +1,5 @@
+pmtiles.js 3.2.1 from the npm package "pmtiles".
+License: BSD-3-Clause (from its package.json). Copyright (c) Protomaps LLC.
+
+maplibre-gl-csp.js, maplibre-gl-csp-worker.js, maplibre-gl.css 4.7.1 from the npm
+package "maplibre-gl". License: BSD-3-Clause, see LICENSE-maplibre.txt.

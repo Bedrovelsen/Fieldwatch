@@ -71,3 +71,10 @@ summary { cursor: pointer; padding: 4px 0; }
 	dl { grid-template-columns: 1fr; }
 	dt { margin-top: 8px; }
 }
+
+figure { margin: 8px 0; }
+#map { height: min(70vh, 640px); border: 1px solid var(--line); border-radius: 6px; }
+figcaption { color: var(--muted); font-size: .9rem; margin-top: 4px; }
+.ring-label { font-size: .75rem; color: var(--muted); background: var(--bg); padding: 0 4px; border-radius: 3px; transform: translateY(-50%); }
+.maplibregl-popup-content { color: #1c1c1a; }
+.maplibregl-popup-content p { margin: 4px 0 0; }

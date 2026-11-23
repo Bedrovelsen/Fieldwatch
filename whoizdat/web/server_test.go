@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"whoizdat/engine"
+	"whoizdat/geo"
 	"whoizdat/obs"
 	"whoizdat/sig"
 )
@@ -30,7 +31,7 @@ func testServer(t *testing.T) (*engine.Engine, http.Handler) {
 	e.Ingest(obs.Observation{At: t0, Kind: obs.WiFi, MAC: "F8:BB:BF:10:20:30", Frame: obs.FrameBeacon, Name: "eero-home", RSSI: -40, Chan: 6})
 	e.Ingest(obs.Observation{At: t0.Add(2 * time.Minute), Kind: obs.WiFi, MAC: "00:30:44:12:34:56", Frame: obs.FrameBeacon, Name: "Cradlepoint-IBR900", RSSI: -60})
 	e.Ingest(obs.Observation{At: t0.Add(2 * time.Minute), Kind: obs.WiFi, MAC: "DA:A1:19:55:66:77", Frame: obs.FrameData, BSSID: "F8:BB:BF:10:20:30", RSSI: -50})
-	s, err := New(e, []string{"box.tail1234.ts.net"})
+	s, err := New(e, Options{AllowHosts: []string{"box.tail1234.ts.net"}, Site: &geo.Point{Lat: 45.4215, Lon: -75.6972}})
 	if err != nil {
 		t.Fatal(err)
 	}

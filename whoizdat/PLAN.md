@@ -15,12 +15,13 @@
 | Front end | fixi first, hyperscript only if necessary |
 | Compatibility with Fieldwatch logs and settings | Not necessary |
 | Name | who_iz_dat |
-| Wi-Fi adapters | AWUS036ACH (RTL8812AU) and one more, probably AWUS036ACM (MT7612U); check the USB id |
+| Wi-Fi adapters | AWUS036ACH (RTL8812AU) and a card with RTL8822BU (`0bda:b812`) |
 | Computer | Mac mini M4 |
 | Bluetooth | The Mac's built-in Bluetooth (no dongle) |
 | First LimeSDR job | Cars and sensors (rtl_433) |
-| Map | MapLibre, area of about four blocks |
+| Map | MapLibre, about four blocks, house at the centre; no labels or aerial photos for now; show estimated distance |
 | Country | Canada |
+| Wi-Fi on the Mac | The wifit3 bridge (`sensors/wifit3pcap`, GPL-2.0, separate program) |
 | Dependencies | Standard library; `golang.org/x/sys` is acceptable |
 
 ## The three plans
@@ -117,10 +118,9 @@ own use, keep them for a short time, and do not publish them.
 
 ## Open questions
 
-1. What is the USB id of the second adapter (see the README)?
-2. For Wi-Fi on the Mac: the wifit3 bridge (GPL-2.0, separate program), a
-   Linux sensor, or both?
-3. Do you want labels on the map (needs font files), and do you want aerial
-   photos?
-4. Where are the sensors (house position), for the map and for the distance
-   alerts of Remote ID drones?
+1. Test the wifit3 bridge with both cards on the Mac: `./wifit3_pcap.py --list`,
+   then a capture into `whoizdat`.
+2. Compile and test the Bluetooth sensor (`sensors/macble`).
+3. Calibrate the distance: a known radio at a known distance.
+4. Next: Remote ID drones on the map (they send their position), and the
+   Linux Bluetooth sensor.

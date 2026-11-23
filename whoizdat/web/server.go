@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"whoizdat/engine"
+	"whoizdat/geo"
 	"whoizdat/obs"
 	"whoizdat/sig"
 )
@@ -27,7 +28,16 @@ import (
 //go:embed tmpl static
 var files embed.FS
 
+// Options for New. A zero Options is valid: localhost only, no map.
+type Options struct {
+	AllowHosts []string   // extra Host names that may reach the server
+	Site       *geo.Point // sensor position; nil = no map
+	Basemap    string     // .pmtiles file for the map; "" = no basemap
+	WiFi, BLE  geo.Model  // distance models
+}
+
 type Server struct {
+	opt     Options
 	e       *engine.Engine
 	base    *template.Template
 	pages   map[string]*template.Template
@@ -36,9 +46,15 @@ type Server struct {
 
 // New makes a server. allowHosts are extra host names (without port) that
 // may reach it, for example a Tailscale name.
-func New(e *engine.Engine, allowHosts []string) (*Server, error) {
-	s := &Server{e: e, pages: map[string]*template.Template{},
-		allowed: append([]string{"localhost", "127.0.0.1", "::1"}, allowHosts...)}
+func New(e *engine.Engine, opt Options) (*Server, error) {
+	if opt.WiFi.N == 0 {
+		opt.WiFi = DefaultWiFi
+	}
+	if opt.BLE.N == 0 {
+		opt.BLE = DefaultBLE
+	}
+	s := &Server{e: e, opt: opt, pages: map[string]*template.Template{},
+		allowed: append([]string{"localhost", "127.0.0.1", "::1"}, opt.AllowHosts...)}
 	base, err := template.New("").Funcs(s.funcs()).ParseFS(files, "tmpl/layout.html", "tmpl/part_*.html")
 	if err != nil {
 		return nil, err
@@ -65,6 +81,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /device", s.device)
 	mux.HandleFunc("GET /alerts", s.alerts)
 	mux.HandleFunc("GET /signatures", s.signatures)
+	mux.HandleFunc("GET /map", s.mapPage)
+	mux.HandleFunc("GET /map.json", s.mapJSON)
+	mux.HandleFunc("GET /map.pmtiles", s.basemap)
 	mux.HandleFunc("POST /accept", s.accept)
 	mux.HandleFunc("POST /accept-all", s.acceptAll)
 	return s.guard(mux)
@@ -94,7 +113,7 @@ func (s *Server) guard(next http.Handler) http.Handler {
 			}
 		}
 		h := w.Header()
-		h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; frame-ancestors 'none'; form-action 'self'")
+		h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data: blob:; frame-ancestors 'none'; form-action 'self'")
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("Referrer-Policy", "no-referrer")
 		next.ServeHTTP(w, r)

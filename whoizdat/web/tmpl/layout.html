@@ -7,12 +7,14 @@
 <link rel="stylesheet" href="/static/site.css">
 <script src="/static/fixi.js"></script>
 <script src="/static/ext-fixi.js"></script>
+{{block "head" .}}{{end}}
 </head>
 <body>
 <header>
   <nav aria-label="Main">
     <strong>who_iz_dat</strong>
     <a href="/"{{if eq .Nav "live"}} aria-current="page"{{end}}>Live</a>
+    <a href="/map"{{if eq .Nav "map"}} aria-current="page"{{end}}>Map</a>
     <a href="/alerts"{{if eq .Nav "alerts"}} aria-current="page"{{end}}>Alerts</a>
     <a href="/signatures"{{if eq .Nav "signatures"}} aria-current="page"{{end}}>Signatures</a>
   </nav>

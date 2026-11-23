@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"whoizdat/engine"
+	"whoizdat/geo"
 	"whoizdat/ism"
 	"whoizdat/obs"
 	"whoizdat/sig"
@@ -158,6 +159,11 @@ func cmdServe(ctx context.Context, args []string) error {
 	learn := fs.Duration("learn", 30*time.Minute, "radios heard in this time after the first observation are home")
 	near := fs.Int("near", -80, "only radios at this dBm or stronger raise new-radio alerts")
 	alertRand := fs.Bool("alert-random", false, "also raise new-radio alerts for random addresses")
+	site := fs.String("site", "", `sensor position "lat,lon" for the map`)
+	basemap := fs.String("basemap", "", "offline basemap .pmtiles file for the map")
+	refWifi := fs.Float64("ref-wifi", web.DefaultWiFi.Ref, "Wi-Fi level (dBm) at 1 m, for distance")
+	refBLE := fs.Float64("ref-ble", web.DefaultBLE.Ref, "Bluetooth level (dBm) at 1 m, for distance")
+	pathN := fs.Float64("path-n", web.DefaultWiFi.N, "path-loss exponent: 2 = open air, 3 to 4 = through walls")
 	var allow multi
 	fs.Var(&allow, "allow-host", "extra host name that may reach the UI, for example a Tailscale name (repeat)")
 	fs.Usage = func() {
@@ -181,7 +187,22 @@ func cmdServe(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	srv, err := web.New(e, allow)
+	opt := web.Options{AllowHosts: allow, Basemap: *basemap, WiFi: web.DefaultWiFi, BLE: web.DefaultBLE}
+	opt.WiFi.Ref, opt.BLE.Ref = *refWifi, *refBLE
+	opt.WiFi.N, opt.BLE.N = *pathN, *pathN
+	if *site != "" {
+		p, err := geo.ParsePoint(*site)
+		if err != nil {
+			return fmt.Errorf("-site: %w", err)
+		}
+		opt.Site = &p
+	}
+	if *basemap != "" {
+		if _, err := os.Stat(*basemap); err != nil {
+			return fmt.Errorf("-basemap: %w", err)
+		}
+	}
+	srv, err := web.New(e, opt)
 	if err != nil {
 		return err
 	}

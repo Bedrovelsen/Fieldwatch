@@ -28,7 +28,8 @@ It reads the same radio-signatures (RSI-1) catalog files.
 | Bluetooth LE on macOS (`sensors/macble`, Swift) | Written, not compiled or tested: this work was done on Linux. |
 | Bluetooth LE on Linux | Not started. See the plan. |
 | LimeSDR spectrum, ADS-B | Not started. See the plan. |
-| Map | Not started. See the plan. |
+| Map (MapLibre, distance rings) | Done, tested in Chromium with demo data. The basemap file step is not tested. |
+| Wi-Fi on macOS with Alfa cards (`sensors/wifit3pcap`, wifit3 bridge, GPL-2.0) | Written and tested with a fake wifit3 and with the real wifit3 API. Not tested with a card. |
 
 ## Build
 
@@ -166,9 +167,50 @@ The macOS kernel has no monitor-mode driver for these Alfa adapters, so
   sudo tcpdump -I -i en0 -w - | ./whoizdat wifi -pcap - | ./whoizdat serve -
   ```
 
-- A user-space USB driver, the method of wifit3. wifit3 runs on macOS, has
-  user-space ports of the Linux drivers in Python over libusb, and grades both
-  the RTL8812AU and the MT7612U as A. See phase 6 in the plan.
+- The wifit3 bridge (recommended). wifit3 drives the cards from user space,
+  with no kernel driver. It grades your RTL8812AU (AWUS036ACH) 91% and
+  RTL8822BU (`0bda:b812`) 90%. See `sensors/wifit3pcap/README.md`:
+
+  ```bash
+  sensors/wifit3pcap/wifit3_pcap.py | ./whoizdat wifi -pcap - | ./whoizdat serve -catalog sigs.rsi -
+  ```
+
+## Map
+
+```bash
+./whoizdat serve -site 45.4215,-75.6972 -basemap area.pmtiles ...
+```
+
+`-site` is the position of the sensor (the house), at the centre of the map.
+One sensor gives a signal level but no direction. So each radio is a dot at
+its estimated distance, in a direction that the program makes up from a hash
+of its id (the direction stays the same, but it is not real). Rings show
+10, 25, 50, 100 and 200 m. Click a dot to see the band of possible distances.
+
+The distance uses the log-distance model, d = 10^((ref - rssi) / (10 n)), with
+the smoothed level of the radio. Defaults: ref -40 dBm at 1 m for Wi-Fi, -59
+dBm for Bluetooth, n = 2.7, and a band from n = 3.5 (near) to n = 2.0 (far).
+Change them with `-ref-wifi`, `-ref-ble` and `-path-n`. To calibrate: put a
+known radio at a known distance and change `-ref-wifi` until the map agrees.
+Sub-GHz sensors are not on the map, because rtl_433 levels are not in dBm.
+
+The basemap is optional. With no basemap, the map shows the rings on a plain
+background. To make a basemap of your area one time (needs internet once, and
+the `pmtiles` program from https://github.com/protomaps/go-pmtiles):
+
+```bash
+pmtiles extract https://build.protomaps.com/20261101.pmtiles area.pmtiles \
+  --bbox=-75.705,45.417,-75.690,45.426 --maxzoom=15
+```
+
+Use the date of a recent build from https://maps.protomaps.com/builds/ and a
+box around your area (west,south,east,north). For four blocks the file is
+small. The map has no text labels, so it needs no font files. The data is
+from OpenStreetMap (ODbL). I could not reach the Protomaps server from the
+computer where I wrote this, so this step is not tested.
+
+MapLibre GL JS 4.7.1 (CSP build) and pmtiles.js 3.2.1 are in
+`web/static/maplibre` (BSD-3-Clause). Only the Map page loads them.
 
 ## Remote access with Tailscale
 
@@ -191,7 +233,9 @@ wifi          radiotap, 802.11, pcap, pcapng, AF_PACKET capture, channel hopping
 engine        radio table, home baseline, alerts
 web           handlers, templates (layout, pages, partials), static files
 ism           rtl_433 JSON to observations
-sensors/macble  macOS Bluetooth sensor (Swift, separate program)
+geo           distance model and map geometry
+sensors/macble    macOS Bluetooth sensor (Swift, separate program)
+sensors/wifit3pcap  wifit3 bridge: USB Wi-Fi cards to a pcap stream (Python, GPL-2.0)
 ```
 
 `web/static/fixi.js` is fixi 0.9.4 from
